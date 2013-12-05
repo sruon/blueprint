@@ -6,17 +6,26 @@ from blueprint import cfg
 import librato
 import statsd
 
-#pip install pymongo
+username = None
+password = None
 
 address = cfg.get('mongodb', 'address')
 port = cfg.get('mongodb', 'port')
-protocol = 'https' if cfg.getboolean('server', 'use_https') else 'http'
 database = cfg.get('mongodb', 'database')
 collection = cfg.get('mongodb', 'collection')
 url = cfg.get('server', 'address')
+protocol = 'https' if cfg.getboolean('server', 'use_https') else 'http'
+try:
+    username = cfg.get('mongodb', 'user')
+    password = cfg.get('mongodb', 'password')
+except:
+    pass
 
 client = MongoClient(address, int(port))
 db = client[database]
+if username is not None:
+    if password is not None:
+        db.authenticate(username, password)
 collection = db[collection]
 
 class StoredObject:
