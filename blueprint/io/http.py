@@ -11,7 +11,7 @@ def _connect(server=None):
         server = cfg.get('io', 'server')
     url = urlparse.urlparse(server)
     if -1 == url.netloc.find(':'):
-        port = url.port or 443 if 'https' == url.scheme else 80
+        port = url.port
     else:
         port = None
     if 'https' == url.scheme:
