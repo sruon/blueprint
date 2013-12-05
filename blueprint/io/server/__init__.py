@@ -22,7 +22,6 @@ else:
 
 app = Flask(__name__)
 
-
 def _blueprint(secret, name):
     """
     Fetch a blueprint from S3 and turn it into a real Blueprint object.
@@ -120,6 +119,12 @@ def secret():
 
 browser_pattern = re.compile(r'Chrome|Gecko|Microsoft|Mozilla|Safari|WebKit')
 
+@app.route('/<secret>/<name>/blueprint.json', methods=['GET'])
+def get_json(secret, name):
+    validate_secret(secret)
+    validate_name(name)
+
+    return backend.get(backend.key_for_blueprint(secret, name))
 
 @app.route('/<secret>/<name>', methods=['GET'])
 def get_blueprint(secret, name):

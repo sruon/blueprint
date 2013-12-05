@@ -10,8 +10,10 @@ import statsd
 
 address = cfg.get('mongodb', 'address')
 port = cfg.get('mongodb', 'port')
+protocol = 'https' if cfg.getboolean('server', 'use_https') else 'http'
 database = cfg.get('mongodb', 'database')
 collection = cfg.get('mongodb', 'collection')
+url = cfg.get('server', 'url')
 
 client = MongoClient(address, int(port))
 db = client[database]
@@ -26,8 +28,7 @@ class StoredObject:
 
 def delete(key):
     """
-    Remove an object from S3.  DELETE requests are free but this function
-    still makes one billable request to account for freed storage.
+    Remove an object from MongoDB.
     """
     content_length = head(key)
     if content_length is None:
@@ -47,14 +48,14 @@ def delete_tarball(secret, name, sha):
 
 def get(key):
     """
-    Fetch an object from S3.  This function makes one billable request.
+    Fetch an object from MongoDB.
     """
     librato.count('blueprint-io-server.requests.get')
     statsd.increment('blueprint-io-server.requests.get')
     k = collection.find_one({"key" : key})
     if k is None:
     	return False
-    return k.tarball
+    return k['tarball']
 
 
 def get_blueprint(secret, name):
@@ -67,16 +68,15 @@ def get_tarball(secret, name, sha):
 
 def head(key):
     """
-    Make a HEAD request for an object in S3.  This is needed to find the
-    object's length so it can be accounted.  This function makes one
-    billable request and anticipates another.
+    Make a HEAD request for an object in MongoDB. 
+    This returns the size of the tarball.
     """
     librato.count('blueprint-io-server.requests.head')
     statsd.increment('blueprint-io-server.requests.head')
     k = collection.find_one({"key" : key})
     if k is None:
       	return None
-    return len(k.tarball)
+    return len(k['tarball'])
 
 
 def head_blueprint(secret, name):
@@ -101,18 +101,17 @@ def key_for_tarball(secret, name, sha):
 
 def list(key):
     """
-    List objects in S3 whose keys begin with the given prefix.  This
-    function makes at least one billable request.
+    List objects in MongoDB whose key begins with the given prefix
     """
     librato.count('blueprint-io-server.requests.list')
     statsd.increment('blueprint-io-server.requests.list')
     result = collection.find({"key" : '^%s' % (key)})
-    return list(result)
+    return result
 
 
 def put(key, data):
     """
-    Store an object in S3.  This function makes one billable request.
+    Store an object in MongoDB.
     """
     librato.count('blueprint-io-server.requests.put')
     statsd.increment('blueprint-io-server.requests.put')
@@ -133,7 +132,7 @@ def put_tarball(secret, name, sha, data):
 
 
 def url_for(key):
-    return ''
+    return '{0}://{1}/{2}'.format(protocol, url, key)
 
 
 def url_for_blueprint(secret, name):

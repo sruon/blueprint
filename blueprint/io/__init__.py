@@ -14,7 +14,6 @@ def pull(server, secret, name):
     r = http.get('/{0}/{1}'.format(secret, name), server=server)
     if 200 == r.status:
         b = Blueprint.load(r, name)
-
         for filename in b.sources.itervalues():
             logging.info('fetching source tarballs - this may take a while')
             r = http.get('/{0}/{1}/{2}'.format(secret, name, filename),
