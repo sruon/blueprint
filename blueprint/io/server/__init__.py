@@ -9,9 +9,15 @@ import urlparse
 
 from blueprint import Blueprint
 from blueprint import cfg
-import backend_mongodb as backend
+
 import librato
 import statsd
+
+backend = cfg.get('server', 'backend')
+if backend == "mongodb":
+    import backend_mongodb as backend
+else:
+    import backend
 
 
 app = Flask(__name__)
@@ -101,7 +107,12 @@ def validate_content_length():
 
 @app.route('/secret', methods=['GET'])
 def secret():
-    s = base64.urlsafe_b64encode(os.urandom(48))
+    while 1:
+        s = base64.urlsafe_b64encode(os.urandom(48))
+        try:
+            iter(backend.list(s)).next()
+        except StopIteration:
+            break
     return MeteredResponse(response='{0}\n'.format(s),
                            status=201,
                            content_type='text/plain')
@@ -269,4 +280,4 @@ sh "$(ls)"
 
 
 if '__main__' == __name__:
-    app.run(host='0.0.0.0', debug=True, threaded=True)
+    app.run(host='0.0.0.0', debug=True)
