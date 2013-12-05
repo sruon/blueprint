@@ -13,7 +13,7 @@ port = cfg.get('mongodb', 'port')
 protocol = 'https' if cfg.getboolean('server', 'use_https') else 'http'
 database = cfg.get('mongodb', 'database')
 collection = cfg.get('mongodb', 'collection')
-url = cfg.get('server', 'url')
+url = cfg.get('server', 'address')
 
 client = MongoClient(address, int(port))
 db = client[database]
@@ -35,8 +35,10 @@ def delete(key):
         return None
     librato.count('blueprint-io-server.requests.delete')
     statsd.increment('blueprint-io-server.requests.delete')
-    collection.delete({"key" : key})
-
+    try:
+        collection.delete({"key" : key})
+    except:
+        return False
 
 def delete_blueprint(secret, name):
     return delete(key_for_blueprint(secret, name))
@@ -52,9 +54,12 @@ def get(key):
     """
     librato.count('blueprint-io-server.requests.get')
     statsd.increment('blueprint-io-server.requests.get')
-    k = collection.find_one({"key" : key})
-    if k is None:
-    	return False
+    try:
+        k = collection.find_one({"key" : key})
+        if k is None:
+    	   return None
+    except:
+        return False
     return k['tarball']
 
 
@@ -73,9 +78,12 @@ def head(key):
     """
     librato.count('blueprint-io-server.requests.head')
     statsd.increment('blueprint-io-server.requests.head')
-    k = collection.find_one({"key" : key})
-    if k is None:
-      	return None
+    try:
+        k = collection.find_one({"key" : key})
+        if k is None:
+            return None
+    except:
+        return False
     return len(k['tarball'])
 
 
@@ -105,7 +113,10 @@ def list(key):
     """
     librato.count('blueprint-io-server.requests.list')
     statsd.increment('blueprint-io-server.requests.list')
-    result = collection.find({"key" : '^%s' % (key)})
+    try:
+        result = collection.find({"key" : '^%s' % (key)})
+    except:
+        return False
     return result
 
 
@@ -118,7 +129,10 @@ def put(key, data):
     # TODO librato.something('blueprint-io-server.storage', len(data))
     statsd.update('blueprint-io-server.storage', len(data))
     element = StoredObject(key, data)
-    collection.insert(element.__dict__)
+    try:
+        collection.insert(element.__dict__)
+    except:
+        return False
     return True
 
 
